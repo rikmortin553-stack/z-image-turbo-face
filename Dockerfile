@@ -1,7 +1,7 @@
 # Используем стабильный образ RunPod с PyTorch 2.4, Python 3.11 и CUDA 12.4.1
 FROM runpod/pytorch:2.4.0-py3.11-cuda12.4.1-devel-ubuntu22.04
 
-# Установка системных зависимостей (aria2 для быстрой загрузки, libgl1 для OpenCV)
+# Установка системных зависимостей (aria2, libgl1 и ВАЖНО: build-essential для компиляции)
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y \
     aria2 \
@@ -9,12 +9,14 @@ RUN apt-get update && apt-get install -y \
     wget \
     libgl1-mesa-glx \
     libglib2.0-0 \
+    build-essential \
+    python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Установка Python-библиотек, запрошенных в ТЗ + зависимостей для нод
-# sageattention, kornia, onnxruntime-gpu (для Impact Pack)
+# Установка Python-библиотек + JupyterLab
+# ЗАМЕНА: ставим opencv-python-headless, чтобы не было конфликта с Impact Pack
 RUN pip install --no-cache-dir \
-    opencv-python \
+    opencv-python-headless \
     imageio \
     kornia \
     sageattention \
@@ -36,16 +38,16 @@ RUN git clone https://github.com/comfyanonymous/ComfyUI.git .
 WORKDIR /comfy-cache/custom_nodes
 RUN git clone https://github.com/ltdrdata/ComfyUI-Manager.git
 
-# 3. Установка кастомных нод из ТЗ
-# Impact Pack (FaceDetailer, SAMLoader)
+# 3. Установка кастомных нод
+# Impact Pack (FaceDetailer, SAMLoader) - добавляем --prefer-binary для стабильности
 RUN git clone https://github.com/ltdrdata/ComfyUI-Impact-Pack.git && \
     cd ComfyUI-Impact-Pack && \
-    pip install -r requirements.txt
+    pip install --no-cache-dir --prefer-binary -r requirements.txt
 
 # KJNodes (PatchSageAttentionKJ)
 RUN git clone https://github.com/kijai/ComfyUI-KJNodes.git && \
     cd ComfyUI-KJNodes && \
-    pip install -r requirements.txt
+    pip install --no-cache-dir --prefer-binary -r requirements.txt
 
 # Comfyroll (CR Upscale, Post-Process)
 RUN git clone https://github.com/Suzie1/ComfyUI_Comfyroll_CustomNodes.git

@@ -1,7 +1,8 @@
-# Используем стабильный образ RunPod с PyTorch 2.4, Python 3.11 и CUDA 12.4.1
+# Используем стабильный образ RunPod
 FROM runpod/pytorch:2.4.0-py3.11-cuda12.4.1-devel-ubuntu22.04
 
-# Установка системных зависимостей (build-essential нужен для компиляции)
+# 1. Системные зависимости
+# build-essential и python3-dev критичны для сборки pycocotools
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y \
     aria2 \
@@ -13,9 +14,15 @@ RUN apt-get update && apt-get install -y \
     python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Установка Python-библиотек + JupyterLab
-# Сначала обновляем pip, чтобы он умел работать с современными wheel
+# 2. Python библиотеки (Global)
+# ВАЖНО: Порядок установки имеет значение!
+# 1. Обновляем pip/wheel.
+# 2. Ставим Cython и numpy (нужны для сборки других пакетов).
+# 3. Ставим pycocotools отдельно (чтобы он увидел numpy и Cython).
+# 4. Ставим остальные библиотеки.
 RUN pip install --no-cache-dir --upgrade pip wheel setuptools && \
+    pip install --no-cache-dir Cython numpy && \
+    pip install --no-cache-dir pycocotools && \
     pip install --no-cache-dir \
     opencv-python-headless \
     imageio \
@@ -32,23 +39,26 @@ RUN pip install --no-cache-dir --upgrade pip wheel setuptools && \
 # Создаем папку для кэша ComfyUI
 WORKDIR /comfy-cache
 
-# 1. Установка ComfyUI
+# 3. Установка ComfyUI
 RUN git clone https://github.com/comfyanonymous/ComfyUI.git .
 
-# 2. Установка ComfyUI Manager
+# 4. Установка ComfyUI Manager
 WORKDIR /comfy-cache/custom_nodes
 RUN git clone https://github.com/ltdrdata/ComfyUI-Manager.git
 
-# 3. Установка кастомных нод
+# 5. Установка кастомных нод
 # Impact Pack FIX:
-# 1. Удаляем конфликтующие зависимости (opencv, onnxruntime)
-# 2. ВАЖНО: Явно ставим numpy ПЕРЕД pycocotools, иначе сборка падает
+# Удаляем из requirements.txt всё, что может вызвать конфликт или уже установлено.
+# opencv-python -> конфликтует с headless (удаляем)
+# onnxruntime -> конфликтует с gpu версией (удаляем)
+# pycocotools -> уже установили выше (удаляем, чтобы не пытался пересобрать)
+# numpy -> уже установили (удаляем)
 RUN git clone https://github.com/ltdrdata/ComfyUI-Impact-Pack.git && \
     cd ComfyUI-Impact-Pack && \
     sed -i '/opencv-python/d' requirements.txt && \
     sed -i '/onnxruntime/d' requirements.txt && \
-    pip install --no-cache-dir numpy && \
-    pip install --no-cache-dir pycocotools && \
+    sed -i '/pycocotools/d' requirements.txt && \
+    sed -i '/numpy/d' requirements.txt && \
     pip install --no-cache-dir -r requirements.txt
 
 # KJNodes (PatchSageAttentionKJ)
@@ -56,10 +66,10 @@ RUN git clone https://github.com/kijai/ComfyUI-KJNodes.git && \
     cd ComfyUI-KJNodes && \
     pip install --no-cache-dir --prefer-binary -r requirements.txt
 
-# Comfyroll (CR Upscale, Post-Process)
+# Comfyroll
 RUN git clone https://github.com/Suzie1/ComfyUI_Comfyroll_CustomNodes.git
 
-# rgthree (Image Comparer)
+# rgthree
 RUN git clone https://github.com/rgthree/rgthree-comfy.git
 
 # Возвращаемся в корень

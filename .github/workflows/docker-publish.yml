@@ -2,13 +2,25 @@ name: Build and Push Docker Image
 
 on:
   push:
-    branches: [ "main" ]  # Если твоя основная ветка называется master, замени main на master и все
+    branches: [ "main" ]
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
     
     steps:
+      - name: Free Disk Space (Ubuntu)
+        uses: jlumbroso/free-disk-space-action@v1.3.1
+        with:
+          # Удаляем ненужное ПО для освобождения места (~10-12GB)
+          tool-cache: true
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: false
+
       - name: Checkout code
         uses: actions/checkout@v4
 

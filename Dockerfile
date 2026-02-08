@@ -1,7 +1,7 @@
 # Используем стабильный образ RunPod с PyTorch 2.4, Python 3.11 и CUDA 12.4.1
 FROM runpod/pytorch:2.4.0-py3.11-cuda12.4.1-devel-ubuntu22.04
 
-# Установка системных зависимостей (aria2, libgl1 и ВАЖНО: build-essential для компиляции)
+# Установка системных зависимостей (build-essential нужен для компиляции pycocotools)
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y \
     aria2 \
@@ -14,8 +14,9 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Установка Python-библиотек + JupyterLab
-# ЗАМЕНА: ставим opencv-python-headless, чтобы не было конфликта с Impact Pack
-RUN pip install --no-cache-dir \
+# Ставим wheel и setuptools первыми, чтобы избежать ошибок сборки
+RUN pip install --no-cache-dir --upgrade pip wheel setuptools && \
+    pip install --no-cache-dir \
     opencv-python-headless \
     imageio \
     kornia \
@@ -39,10 +40,16 @@ WORKDIR /comfy-cache/custom_nodes
 RUN git clone https://github.com/ltdrdata/ComfyUI-Manager.git
 
 # 3. Установка кастомных нод
-# Impact Pack (FaceDetailer, SAMLoader) - добавляем --prefer-binary для стабильности
+# Impact Pack FIX:
+# - Удаляем opencv-python (используем headless, который уже поставили)
+# - Удаляем onnxruntime (используем onnxruntime-gpu, который уже поставили)
+# - Ставим pycocotools отдельно
 RUN git clone https://github.com/ltdrdata/ComfyUI-Impact-Pack.git && \
     cd ComfyUI-Impact-Pack && \
-    pip install --no-cache-dir --prefer-binary -r requirements.txt
+    sed -i '/opencv-python/d' requirements.txt && \
+    sed -i '/onnxruntime/d' requirements.txt && \
+    pip install --no-cache-dir pycocotools && \
+    pip install --no-cache-dir -r requirements.txt
 
 # KJNodes (PatchSageAttentionKJ)
 RUN git clone https://github.com/kijai/ComfyUI-KJNodes.git && \

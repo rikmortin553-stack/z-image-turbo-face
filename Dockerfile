@@ -2,7 +2,7 @@
 FROM runpod/pytorch:2.4.0-py3.11-cuda12.4.1-devel-ubuntu22.04
 
 # 1. Системные зависимости
-# Удаляем кэш apt сразу после установки в том же слоее
+# Удаляем кэш apt сразу после установки в том же слое
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y \
     aria2 \
@@ -18,7 +18,7 @@ RUN apt-get update && apt-get install -y \
 RUN pip install --no-cache-dir --upgrade pip wheel setuptools
 
 # 3. Установка библиотек (Сначала тяжелые, чтобы закэшировались)
-# Объединяем в один RUN для экономии места
+# Добавлены новые зависимости ComfyUI: sqlalchemy, spandrel, soundfile
 RUN pip install --no-cache-dir numpy Cython && \
     pip install --no-cache-dir pycocotools && \
     pip install --no-cache-dir \
@@ -35,15 +35,18 @@ RUN pip install --no-cache-dir numpy Cython && \
     pillow \
     scipy \
     segment-anything \
+    sqlalchemy \
+    spandrel \
+    soundfile \
     jupyterlab
 
 # Создаем рабочую папку
 WORKDIR /comfy-cache
 
 # 4. Установка ComfyUI и Нод
-# Объединяем клонирование в один слой. 
-# Это критично для уменьшения размера образа.
+# Клонируем и сразу прогоняем requirements.txt для ядра ComfyUI, чтобы точно ничего не забыть
 RUN git clone https://github.com/comfyanonymous/ComfyUI.git . && \
+    pip install --no-cache-dir -r requirements.txt && \
     cd custom_nodes && \
     git clone https://github.com/ltdrdata/ComfyUI-Manager.git && \
     git clone https://github.com/ltdrdata/ComfyUI-Impact-Pack.git && \

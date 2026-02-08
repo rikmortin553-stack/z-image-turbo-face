@@ -2,7 +2,7 @@
 FROM runpod/pytorch:2.4.0-py3.11-cuda12.4.1-devel-ubuntu22.04
 
 # 1. Системные зависимости
-# Удаляем кэш apt сразу после установки в том же слое
+# Удаляем кэш apt сразу после установки в том же слоее
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y \
     aria2 \

@@ -2,7 +2,7 @@ name: Build and Push Docker Image
 
 on:
   push:
-    branches: [ "main" ]  # Если твоя основная ветка называется master, замени main на master
+    branches: [ "main" ]  # Если твоя основная ветка называется master, замени main на master и все
 
 jobs:
   build-and-push:

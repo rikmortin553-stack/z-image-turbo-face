@@ -2,7 +2,7 @@
 FROM runpod/pytorch:2.4.0-py3.11-cuda12.4.1-devel-ubuntu22.04
 
 # 1. Системные зависимости
-# build-essential и python3-dev ОБЯЗАТЕЛЬНЫ для сборки C++ частей библиотек
+# Удаляем кэш apt сразу после установки в том же слое
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y \
     aria2 \
@@ -17,18 +17,11 @@ RUN apt-get update && apt-get install -y \
 # 2. Подготовка pip
 RUN pip install --no-cache-dir --upgrade pip wheel setuptools
 
-# 3. Установка "капризных" библиотек (ЭТАП 1)
-# Сначала ставим ТОЛЬКО numpy и Cython, чтобы они точно были готовы к моменту сборки pycocotools
-RUN pip install --no-cache-dir numpy Cython
-
-# 4. Установка pycocotools (ЭТАП 2)
-# Ставим отдельно, теперь он гарантированно найдет numpy
-RUN pip install --no-cache-dir pycocotools
-
-# 5. Установка ВСЕХ остальных библиотек (ЭТАП 3)
-# Здесь мы ставим всё, что нужно для ComfyUI, Impact Pack и других нод.
-# Мы используем opencv-python-headless, чтобы избежать краша графики.
-RUN pip install --no-cache-dir \
+# 3. Установка библиотек (Сначала тяжелые, чтобы закэшировались)
+# Объединяем в один RUN для экономии места
+RUN pip install --no-cache-dir numpy Cython && \
+    pip install --no-cache-dir pycocotools && \
+    pip install --no-cache-dir \
     opencv-python-headless \
     imageio \
     kornia \
@@ -47,21 +40,16 @@ RUN pip install --no-cache-dir \
 # Создаем рабочую папку
 WORKDIR /comfy-cache
 
-# 6. Установка ComfyUI
-RUN git clone https://github.com/comfyanonymous/ComfyUI.git .
-
-# 7. Установка ComfyUI Manager
-WORKDIR /comfy-cache/custom_nodes
-RUN git clone https://github.com/ltdrdata/ComfyUI-Manager.git
-
-# 8. Клонирование кастомных нод (БЕЗ pip install)
-# Мы уже установили все их зависимости выше вручную, поэтому просто клонируем.
-# Это исключает ошибки сборки внутри requirements.txt.
-
-RUN git clone https://github.com/ltdrdata/ComfyUI-Impact-Pack.git
-RUN git clone https://github.com/kijai/ComfyUI-KJNodes.git
-RUN git clone https://github.com/Suzie1/ComfyUI_Comfyroll_CustomNodes.git
-RUN git clone https://github.com/rgthree/rgthree-comfy.git
+# 4. Установка ComfyUI и Нод
+# Объединяем клонирование в один слой. 
+# Это критично для уменьшения размера образа.
+RUN git clone https://github.com/comfyanonymous/ComfyUI.git . && \
+    cd custom_nodes && \
+    git clone https://github.com/ltdrdata/ComfyUI-Manager.git && \
+    git clone https://github.com/ltdrdata/ComfyUI-Impact-Pack.git && \
+    git clone https://github.com/kijai/ComfyUI-KJNodes.git && \
+    git clone https://github.com/Suzie1/ComfyUI_Comfyroll_CustomNodes.git && \
+    git clone https://github.com/rgthree/rgthree-comfy.git
 
 # Возвращаемся в корень
 WORKDIR /

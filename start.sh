@@ -99,4 +99,4 @@ echo "--- Starting JupyterLab & ComfyUI ---"
 jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --allow-root --ServerApp.token='' --ServerApp.password='' --ServerApp.allow_origin='*' --ServerApp.allow_remote_access=True --ServerApp.root_dir='/workspace' &
 
 # Запуск ComfyUI (основной процесс)
-python main.py --listen 0.0.0.0 --port 3000 --highvram --disable-auto-launch
+python main.py --listen 0.0.0.0 --port 3000 --disable-auto-launch

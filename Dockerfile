@@ -55,14 +55,14 @@ WORKDIR /comfy-cache
 RUN git clone https://github.com/comfyanonymous/ComfyUI.git . && \
     pip install --no-cache-dir -r requirements.txt
 
-# 5. Установка ВСЕХ кастомных нод (включая те, что на скриншоте)
+# 5. Установка ВСЕХ кастомных нод
 WORKDIR /comfy-cache/custom_nodes
 
 RUN git clone https://github.com/ltdrdata/ComfyUI-Manager.git && \
     git clone https://github.com/ltdrdata/ComfyUI-Impact-Pack.git && \
     git clone https://github.com/ltdrdata/ComfyUI-Impact-Subpack.git && \
-    git clone https://github.com/ControlAltAI/ControlAltAI-Nodes.git && \
-    git clone https://github.com/Tangshuang/CRT-Nodes.git && \
+    git clone https://github.com/gseth/ControlAltAI-Nodes.git && \
+    git clone https://github.com/PGCRT/CRT-Nodes.git && \
     git clone https://github.com/kijai/ComfyUI-KJNodes.git && \
     git clone https://github.com/Suzie1/ComfyUI_Comfyroll_CustomNodes.git && \
     git clone https://github.com/rgthree/rgthree-comfy.git

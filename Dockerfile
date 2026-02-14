@@ -2,7 +2,6 @@
 FROM runpod/pytorch:2.4.0-py3.11-cuda12.4.1-devel-ubuntu22.04
 
 # 1. Системные зависимости
-# Удаляем кэш apt сразу после установки в том же слое
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y \
     aria2 \
@@ -17,8 +16,12 @@ RUN apt-get update && apt-get install -y \
 # 2. Подготовка pip
 RUN pip install --no-cache-dir --upgrade pip wheel setuptools
 
-# 3. Установка библиотек (Сначала тяжелые, чтобы закэшировались)
-# Добавлены новые зависимости ComfyUI: sqlalchemy, spandrel, soundfile
+# 3. Установка библиотек (Python Dependencies)
+# Добавляем ВСЕ, что просили твои логи и скриншоты:
+# - dill (для Impact Subpack)
+# - pedalboard (для CRT Nodes)
+# - GitPython (для Manager)
+# - matrix-client (иногда нужен)
 RUN pip install --no-cache-dir numpy Cython && \
     pip install --no-cache-dir pycocotools && \
     pip install --no-cache-dir \
@@ -38,18 +41,28 @@ RUN pip install --no-cache-dir numpy Cython && \
     sqlalchemy \
     spandrel \
     soundfile \
-    jupyterlab
+    jupyterlab \
+    GitPython \
+    dill \
+    matrix-client \
+    pedalboard
 
 # Создаем рабочую папку
 WORKDIR /comfy-cache
 
 # 4. Установка ComfyUI и Нод
-# Клонируем и сразу прогоняем requirements.txt для ядра ComfyUI, чтобы точно ничего не забыть
+# Клонируем ComfyUI
 RUN git clone https://github.com/comfyanonymous/ComfyUI.git . && \
-    pip install --no-cache-dir -r requirements.txt && \
-    cd custom_nodes && \
-    git clone https://github.com/ltdrdata/ComfyUI-Manager.git && \
+    pip install --no-cache-dir -r requirements.txt
+
+# 5. Установка ВСЕХ кастомных нод (включая те, что на скриншоте)
+WORKDIR /comfy-cache/custom_nodes
+
+RUN git clone https://github.com/ltdrdata/ComfyUI-Manager.git && \
     git clone https://github.com/ltdrdata/ComfyUI-Impact-Pack.git && \
+    git clone https://github.com/ltdrdata/ComfyUI-Impact-Subpack.git && \
+    git clone https://github.com/ControlAltAI/ControlAltAI-Nodes.git && \
+    git clone https://github.com/Tangshuang/CRT-Nodes.git && \
     git clone https://github.com/kijai/ComfyUI-KJNodes.git && \
     git clone https://github.com/Suzie1/ComfyUI_Comfyroll_CustomNodes.git && \
     git clone https://github.com/rgthree/rgthree-comfy.git
